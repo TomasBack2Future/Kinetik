@@ -7,15 +7,6 @@ import (
 	"github.com/TomasBack2Future/Kinetik/automation/internal/types"
 )
 
-// getRepoName extracts repo name from full name (owner/repo)
-func getRepoName(fullName string) string {
-	parts := strings.Split(fullName, "/")
-	if len(parts) == 2 {
-		return parts[1]
-	}
-	return fullName
-}
-
 type PromptBuilder struct {
 	botUsername string
 }
