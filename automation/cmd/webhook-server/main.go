@@ -51,7 +51,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to connect to database", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("Failed to close database connection", err)
+		}
+	}()
 
 	logger.Info("Connected to database")
 
@@ -88,7 +92,7 @@ func main() {
 	// Health check endpoint
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "OK")
+		_, _ = fmt.Fprintf(w, "OK")
 	})
 
 	// Webhook endpoint with signature validation

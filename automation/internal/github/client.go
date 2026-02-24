@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/TomasBack2Future/Kinetik/automation/pkg/config"
@@ -27,7 +26,7 @@ func NewClient(cfg *config.Config) *Client {
 
 // CreateIssueComment posts a comment on an issue
 func (c *Client) CreateIssueComment(owner, repo string, issueNumber int, body string) error {
-	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + strconv.Itoa(issueNumber) + "/comments"
+	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + fmt.Sprint(issueNumber) + "/comments"
 
 	payload := map[string]string{
 		"body": body,
@@ -51,7 +50,9 @@ func (c *Client) CreateIssueComment(owner, repo string, issueNumber int, body st
 	if err != nil {
 		return fmt.Errorf("failed to post comment: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -79,7 +80,9 @@ func (c *Client) CreateBranch(owner, repo, branchName, baseBranch string) error 
 	if err != nil {
 		return fmt.Errorf("failed to get base branch: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -122,7 +125,9 @@ func (c *Client) CreateBranch(owner, repo, branchName, baseBranch string) error 
 	if err != nil {
 		return fmt.Errorf("failed to create branch: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -135,7 +140,7 @@ func (c *Client) CreateBranch(owner, repo, branchName, baseBranch string) error 
 
 // AddIssueLabel adds a label to an issue
 func (c *Client) AddIssueLabel(owner, repo string, issueNumber int, label string) error {
-	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + strconv.Itoa(issueNumber) + "/labels"
+	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + fmt.Sprint(issueNumber) + "/labels"
 
 	payload := map[string][]string{
 		"labels": {label},
@@ -159,7 +164,9 @@ func (c *Client) AddIssueLabel(owner, repo string, issueNumber int, label string
 	if err != nil {
 		return fmt.Errorf("failed to add label: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)

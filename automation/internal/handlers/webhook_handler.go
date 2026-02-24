@@ -48,12 +48,12 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	case "ping":
 		logger.Info("Received ping event")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "pong")
+		_, _ = fmt.Fprintf(w, "pong")
 		return
 	case "installation", "installation_repositories":
 		logger.Info("Received installation event")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "ok")
+		_, _ = fmt.Fprintf(w, "ok")
 		return
 	}
 
@@ -167,9 +167,9 @@ func (h *WebhookHandler) handlePullRequestEvent(body []byte, deliveryID string) 
 	}
 
 	logger.WithFields(logrus.Fields{
-		"action":     event.Action,
-		"pr_number":  event.PullRequest.Number,
-		"repo":       event.Repository.FullName,
+		"action":    event.Action,
+		"pr_number": event.PullRequest.Number,
+		"repo":      event.Repository.FullName,
 	}).Info("Processing pull_request event")
 
 	// Process opened or synchronized PRs

@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	StateAnalyzing      = "analyzing"
+	StateAnalyzing       = "analyzing"
 	StatePendingApproval = "pending_approval"
-	StateExecuting      = "executing"
-	StateCompleted      = "completed"
-	StateFailed         = "failed"
+	StateExecuting       = "executing"
+	StateCompleted       = "completed"
+	StateFailed          = "failed"
 )
 
 type Manager struct {
@@ -160,7 +160,7 @@ func (m *Manager) GetFromContext(conv *repository.Conversation, key string) (int
 
 // BuildContextString builds a human-readable context string for prompts
 func (m *Manager) BuildContextString(conv *repository.Conversation) string {
-	if conv.Context == nil || len(conv.Context) == 0 {
+	if len(conv.Context) == 0 {
 		return ""
 	}
 

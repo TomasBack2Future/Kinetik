@@ -44,7 +44,9 @@ func tailFile(filePath string, n int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Read all lines into a slice
 	var lines []string
@@ -184,7 +186,9 @@ func (c *CLIClient) executeOnce(ctx context.Context, prompt string, sessionID st
 	if err != nil {
 		return nil, fmt.Errorf("failed to open prompt file: %w", err)
 	}
-	defer promptFile.Close()
+	defer func() {
+		_ = promptFile.Close()
+	}()
 
 	// Pipe prompt file to stdin
 	cmd.Stdin = promptFile
@@ -197,13 +201,17 @@ func (c *CLIClient) executeOnce(ctx context.Context, prompt string, sessionID st
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stdout log: %w", err)
 	}
-	defer stdoutFile.Close()
+	defer func() {
+		_ = stdoutFile.Close()
+	}()
 
 	stderrFile, err := os.Create(stderrPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stderr log: %w", err)
 	}
-	defer stderrFile.Close()
+	defer func() {
+		_ = stderrFile.Close()
+	}()
 
 	// Redirect output to files
 	cmd.Stdout = stdoutFile
@@ -215,8 +223,8 @@ func (c *CLIClient) executeOnce(ctx context.Context, prompt string, sessionID st
 	duration := time.Since(start)
 
 	// Close files to flush buffers
-	stdoutFile.Close()
-	stderrFile.Close()
+	_ = stdoutFile.Close()
+	_ = stderrFile.Close()
 
 	// Read the last 200 lines from stdout (to avoid memory issues)
 	stdoutTail, readErr := tailFile(stdoutPath, 200)
@@ -270,11 +278,11 @@ func (c *CLIClient) executeOnce(ctx context.Context, prompt string, sessionID st
 		result.Error = fmt.Sprintf("execution failed: %v\nstderr: %s", err, stderrStr)
 		// Log error with file locations
 		logger.WithFields(logrus.Fields{
-			"error":        err.Error(),
-			"stderr":       stderrStr,
-			"stdout_file":  stdoutPath,
-			"stderr_file":  stderrPath,
-			"stdout_size":  stdoutSize,
+			"error":       err.Error(),
+			"stderr":      stderrStr,
+			"stdout_file": stdoutPath,
+			"stderr_file": stderrPath,
+			"stdout_size": stdoutSize,
 		}).Error("Claude CLI execution failed")
 		return result, err
 	}
@@ -370,8 +378,8 @@ func isRetryableError(err error) bool {
 		"timeout",                   // Timeout errors
 		"temporary failure",         // Temporary failures
 		"context deadline exceeded", // Context timeout
-		"broken pipe",              // Pipe errors
-		"connection reset",         // Connection reset
+		"broken pipe",               // Pipe errors
+		"connection reset",          // Connection reset
 	}
 
 	for _, pattern := range retryablePatterns {
@@ -391,8 +399,8 @@ func isRetryableError(err error) bool {
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) &&
 		(s == substr || len(s) > len(substr) &&
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-		findSubstring(s, substr)))
+			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+				findSubstring(s, substr)))
 }
 
 func findSubstring(s, substr string) bool {
@@ -446,7 +454,7 @@ func (c *CLIClient) ExecuteAsync(ctx context.Context, prompt string, sessionID s
 
 	stderrFile, err := os.Create(filepath.Join(workDir, "stderr.log"))
 	if err != nil {
-		stdoutFile.Close()
+		_ = stdoutFile.Close()
 		return "", fmt.Errorf("failed to create stderr log: %w", err)
 	}
 
@@ -455,15 +463,19 @@ func (c *CLIClient) ExecuteAsync(ctx context.Context, prompt string, sessionID s
 
 	// Start command in background
 	if err := cmd.Start(); err != nil {
-		stdoutFile.Close()
-		stderrFile.Close()
+		_ = stdoutFile.Close()
+		_ = stderrFile.Close()
 		return "", fmt.Errorf("failed to start command: %w", err)
 	}
 
 	// Close files and wait for completion in goroutine
 	go func() {
-		defer stdoutFile.Close()
-		defer stderrFile.Close()
+		defer func() {
+			_ = stdoutFile.Close()
+		}()
+		defer func() {
+			_ = stderrFile.Close()
+		}()
 
 		if err := cmd.Wait(); err != nil {
 			logger.WithFields(logrus.Fields{

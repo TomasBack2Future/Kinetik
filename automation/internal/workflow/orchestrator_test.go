@@ -56,7 +56,9 @@ func TestIssueCommentWorkflow(t *testing.T) {
 	// Setup database connection
 	db, err := repository.NewPostgresDB(cfg.Database.GetDSN())
 	require.NoError(t, err, "Failed to connect to test database")
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	// Create test issue comment event
 	event := &types.IssueCommentEvent{
@@ -265,7 +267,9 @@ func TestConversationTokenAccumulation(t *testing.T) {
 
 	db, err := repository.NewPostgresDB(dbConfig.GetDSN())
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	ctx := context.Background()
 	convRepo := repository.NewConversationRepo(db)
