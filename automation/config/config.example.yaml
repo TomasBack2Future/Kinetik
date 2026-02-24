@@ -24,7 +24,7 @@ github:
     - TomasBack2Future/kinetik_agent
 
 claude:
-  cli_path: /root/.nvm/versions/node/v22.19.0/bin/claude
+  cli_path: /usr/local/bin/claude
   work_dir: /tmp/claude-sessions
   # Repository root directory where MCP servers are configured (project scope)
   repo_root: /path/to/your/repo

@@ -153,6 +153,7 @@ func (c *CLIClient) executeOnce(ctx context.Context, prompt string, sessionID st
 	// Build command - pipe prompt from file instead of passing as argument
 	args := []string{
 		"--print",
+		"--dangerously-skip-permissions", // Allow full file system and command access for automation
 		// Note: No --output-format flag - plain text is more readable and faster
 		// Note: No --session-id flag - let Claude auto-generate to avoid conflicts
 		// Note: No --mcp-config flag needed - MCP servers are loaded from project scope
@@ -430,6 +431,7 @@ func (c *CLIClient) ExecuteAsync(ctx context.Context, prompt string, sessionID s
 	args := []string{
 		prompt, // Prompt must be first!
 		"--print",
+		"--dangerously-skip-permissions", // Allow full file system and command access for automation
 		// Note: No --output-format flag - plain text is more readable and faster
 		// Note: No --session-id flag - let Claude auto-generate to avoid conflicts
 		// Note: No --mcp-config flag needed - MCP servers are loaded from project scope

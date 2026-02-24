@@ -20,7 +20,7 @@ services:
       - automation-network
 
   webhook-server:
-    image: ghcr.io/tomasback2future/kinetik-automation:8c5a497
+    image: ghcr.io/tomasback2future/kinetik-automation:ee64c65
     container_name: kinetik-automation-webhook
     ports:
       - "8080:8080"
