@@ -1,0 +1,57 @@
+server:
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+
+database:
+  host: localhost
+  port: 5432
+  name: kinetik_automation
+  user: kinetik_automation
+  password: your_secure_password_here
+  ssl_mode: disable
+
+github:
+  # Set via environment variable: GITHUB_WEBHOOK_SECRET
+  webhook_secret: ${GITHUB_WEBHOOK_SECRET}
+  # Set via environment variable: GITHUB_PERSONAL_ACCESS_TOKEN
+  personal_access_token: ${GITHUB_PERSONAL_ACCESS_TOKEN}
+  # GitHub bot username (without @)
+  bot_username: your-bot-username
+  allowed_repos:
+    - TomasBack2Future/Kinetik
+    - TomasBack2Future/KinetikServer
+    - TomasBack2Future/kinetik_agent
+
+claude:
+  cli_path: /root/.nvm/versions/node/v22.19.0/bin/claude
+  work_dir: /tmp/claude-sessions
+  # Repository root directory where MCP servers are configured (project scope)
+  repo_root: /path/to/your/repo
+  timeout: 300s
+  # Maximum number of retries if Claude CLI fails or is killed (default: 2)
+  max_retries: 2
+  # Environment variables to inject into Claude CLI subprocess
+  env:
+    CLAUDE_CODE_USE_BEDROCK: "1"
+    AWS_ACCESS_KEY_ID: "your_aws_access_key_id"
+    AWS_SECRET_ACCESS_KEY: "your_aws_secret_access_key"
+    DISABLE_PROMPT_CACHING: "0"
+    DISABLE_AUTOUPDATER: "1"
+    http_proxy: "http://your.proxy.host:port"
+    https_proxy: "http://your.proxy.host:port"
+    # GitHub token for MCP server authentication (use same value as github.personal_access_token)
+    GITHUB_TOKEN: "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+    GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+
+workflow:
+  approval_keywords:
+    - approved
+    - lgtm
+    - proceed
+    - go ahead
+
+logging:
+  level: info
+  enabled: true
+  file: logs/webhook-server.log

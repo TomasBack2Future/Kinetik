@@ -1,0 +1,169 @@
+name: Automation Service CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'automation/**'
+      - '.github/workflows/automation-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'automation/**'
+      - '.github/workflows/automation-ci.yml'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_DB: kinetik_automation_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: automation/go.sum
+
+      - name: Install dependencies
+        working-directory: ./automation
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run migrations
+        working-directory: ./automation
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/kinetik_automation_test?sslmode=disable
+        run: |
+          PGPASSWORD=test psql -h localhost -U test -d kinetik_automation_test -f migrations/000001_init_schema.up.sql
+
+      - name: Run tests
+        working-directory: ./automation
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/kinetik_automation_test?sslmode=disable
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./automation/coverage.out
+          flags: automation
+          name: automation-coverage
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: automation/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: ./automation
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: automation/go.sum
+
+      - name: Build binary
+        working-directory: ./automation
+        run: |
+          go build -v -o bin/webhook-server ./cmd/webhook-server
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webhook-server
+          path: automation/bin/webhook-server
+
+  docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/kinetik-automation
+            ${{ secrets.DOCKER_USERNAME }}/kinetik-automation
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./automation
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

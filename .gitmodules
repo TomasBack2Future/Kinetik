@@ -1,0 +1,6 @@
+[submodule "KinetikServer"]
+	path = KinetikServer
+	url = git@github.com:TomasBack2Future/KinetikServer.git
+[submodule "kinetik_agent"]
+	path = kinetik_agent
+	url = git@github.com:TomasBack2Future/kinetik_agent.git
