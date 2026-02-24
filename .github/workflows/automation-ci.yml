@@ -145,12 +145,18 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Image version: ${VERSION}"
 
+      - name: Convert repository owner to lowercase
+        id: repo
+        run: |
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "owner=${OWNER_LOWER}" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: ./automation
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/kinetik-automation:${{ steps.version.outputs.version }}
+          tags: ghcr.io/${{ steps.repo.outputs.owner }}/kinetik-automation:${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
