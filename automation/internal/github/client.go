@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/TomasBack2Future/Kinetik/automation/pkg/config"
@@ -26,7 +27,7 @@ func NewClient(cfg *config.Config) *Client {
 
 // CreateIssueComment posts a comment on an issue
 func (c *Client) CreateIssueComment(owner, repo string, issueNumber int, body string) error {
-	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + fmt.Sprint(issueNumber) + "/comments"
+	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + strconv.Itoa(issueNumber) + "/comments"
 
 	payload := map[string]string{
 		"body": body,
@@ -134,7 +135,7 @@ func (c *Client) CreateBranch(owner, repo, branchName, baseBranch string) error 
 
 // AddIssueLabel adds a label to an issue
 func (c *Client) AddIssueLabel(owner, repo string, issueNumber int, label string) error {
-	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + fmt.Sprint(issueNumber) + "/labels"
+	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + strconv.Itoa(issueNumber) + "/labels"
 
 	payload := map[string][]string{
 		"labels": {label},
