@@ -116,7 +116,9 @@ func (o *Orchestrator) processQueuedIssue(ctx context.Context, queued *QueuedIss
 	}
 
 	// Store branch name in context
-	o.contextManager.AddToContext(ctx, conv, "branch_name", queued.BranchName)
+	if err := o.contextManager.AddToContext(ctx, conv, "branch_name", queued.BranchName); err != nil {
+		logger.Error("Failed to add branch name to context", err)
+	}
 
 	// Build prompt
 	contextStr := o.contextManager.BuildContextString(conv)
@@ -130,15 +132,25 @@ func (o *Orchestrator) processQueuedIssue(ctx context.Context, queued *QueuedIss
 	result, err := o.claudeClient.Execute(ctx, prompt, queued.BranchName, workDir)
 	if err != nil {
 		logger.Error("Failed to execute Claude", err)
-		o.contextManager.UpdateState(ctx, conv, contextmgr.StateFailed)
+		if updateErr := o.contextManager.UpdateState(ctx, conv, contextmgr.StateFailed); updateErr != nil {
+			logger.Error("Failed to update state to failed", updateErr)
+		}
 		return err
 	}
 
 	// Update conversation
-	o.contextManager.UpdateSessionID(ctx, conv, result.SessionID)
-	o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs)
-	o.contextManager.UpdateState(ctx, conv, contextmgr.StatePendingApproval)
-	o.contextManager.AddToContext(ctx, conv, "analysis", result.Output)
+	if err := o.contextManager.UpdateSessionID(ctx, conv, result.SessionID); err != nil {
+		logger.Error("Failed to update session ID", err)
+	}
+	if err := o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs); err != nil {
+		logger.Error("Failed to add token usage", err)
+	}
+	if err := o.contextManager.UpdateState(ctx, conv, contextmgr.StatePendingApproval); err != nil {
+		logger.Error("Failed to update state", err)
+	}
+	if err := o.contextManager.AddToContext(ctx, conv, "analysis", result.Output); err != nil {
+		logger.Error("Failed to add analysis to context", err)
+	}
 
 	logger.WithFields(logrus.Fields{
 		"conversation_id": conv.ID,
@@ -178,7 +190,10 @@ func (o *Orchestrator) HandleIssueApproval(event *types.IssueCommentEvent) {
 	}
 
 	// Update state to executing
-	o.contextManager.UpdateState(ctx, conv, contextmgr.StateExecuting)
+	if err := o.contextManager.UpdateState(ctx, conv, contextmgr.StateExecuting); err != nil {
+		logger.Error("Failed to update state to executing", err)
+		return
+	}
 
 	// Build implementation prompt
 	contextStr := o.contextManager.BuildContextString(conv)
@@ -195,14 +210,22 @@ func (o *Orchestrator) HandleIssueApproval(event *types.IssueCommentEvent) {
 	result, err := o.claudeClient.Execute(ctx, prompt, "", workDir)
 	if err != nil {
 		logger.Error("Failed to execute Claude", err)
-		o.contextManager.UpdateState(ctx, conv, contextmgr.StateFailed)
+		if updateErr := o.contextManager.UpdateState(ctx, conv, contextmgr.StateFailed); updateErr != nil {
+			logger.Error("Failed to update state to failed", updateErr)
+		}
 		return
 	}
 
 	// Update conversation
-	o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs)
-	o.contextManager.UpdateState(ctx, conv, contextmgr.StateCompleted)
-	o.contextManager.AddToContext(ctx, conv, "implementation", result.Output)
+	if err := o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs); err != nil {
+		logger.Error("Failed to add token usage", err)
+	}
+	if err := o.contextManager.UpdateState(ctx, conv, contextmgr.StateCompleted); err != nil {
+		logger.Error("Failed to update state to completed", err)
+	}
+	if err := o.contextManager.AddToContext(ctx, conv, "implementation", result.Output); err != nil {
+		logger.Error("Failed to add implementation to context", err)
+	}
 
 	logger.WithFields(logrus.Fields{
 		"conversation_id": conv.ID,
@@ -260,9 +283,15 @@ func (o *Orchestrator) HandleIssueMention(event *types.IssueCommentEvent) {
 		}
 
 		// Update conversation
-		o.contextManager.UpdateSessionID(ctx, conv, result.SessionID)
-		o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs)
-		o.contextManager.AddToContext(ctx, conv, "mention_response", result.Output)
+		if err := o.contextManager.UpdateSessionID(ctx, conv, result.SessionID); err != nil {
+			logger.Error("Failed to update session ID", err)
+		}
+		if err := o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs); err != nil {
+			logger.Error("Failed to add token usage", err)
+		}
+		if err := o.contextManager.AddToContext(ctx, conv, "mention_response", result.Output); err != nil {
+			logger.Error("Failed to add mention response to context", err)
+		}
 
 		logger.WithField("conversation_id", conv.ID).Info("Bot mention handled")
 		return
@@ -312,8 +341,12 @@ func (o *Orchestrator) HandlePullRequest(event *types.PullRequestEvent) {
 	}
 
 	// Store PR info in context
-	o.contextManager.AddToContext(ctx, conv, "pr_title", event.PullRequest.Title)
-	o.contextManager.AddToContext(ctx, conv, "pr_body", event.PullRequest.Body)
+	if err := o.contextManager.AddToContext(ctx, conv, "pr_title", event.PullRequest.Title); err != nil {
+		logger.Error("Failed to add PR title to context", err)
+	}
+	if err := o.contextManager.AddToContext(ctx, conv, "pr_body", event.PullRequest.Body); err != nil {
+		logger.Error("Failed to add PR body to context", err)
+	}
 
 	logger.WithField("conversation_id", conv.ID).Info("PR event processed")
 }
@@ -355,9 +388,15 @@ func (o *Orchestrator) HandlePullRequestReview(event *types.PullRequestReviewEve
 	}
 
 	// Update conversation
-	o.contextManager.UpdateSessionID(ctx, conv, result.SessionID)
-	o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs)
-	o.contextManager.AddToContext(ctx, conv, "review_response", result.Output)
+	if err := o.contextManager.UpdateSessionID(ctx, conv, result.SessionID); err != nil {
+		logger.Error("Failed to update session ID", err)
+	}
+	if err := o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs); err != nil {
+		logger.Error("Failed to add token usage", err)
+	}
+	if err := o.contextManager.AddToContext(ctx, conv, "review_response", result.Output); err != nil {
+		logger.Error("Failed to add review response to context", err)
+	}
 
 	logger.WithField("conversation_id", conv.ID).Info("PR review handled")
 }
@@ -392,9 +431,15 @@ func (o *Orchestrator) HandlePullRequestComment(event *types.PullRequestReviewCo
 	}
 
 	// Update conversation
-	o.contextManager.UpdateSessionID(ctx, conv, result.SessionID)
-	o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs)
-	o.contextManager.AddToContext(ctx, conv, "comment_response", result.Output)
+	if err := o.contextManager.UpdateSessionID(ctx, conv, result.SessionID); err != nil {
+		logger.Error("Failed to update session ID", err)
+	}
+	if err := o.contextManager.AddTokenUsage(ctx, conv, result.TotalTokens, result.InputTokens, result.OutputTokens, result.ToolUses, result.DurationMs); err != nil {
+		logger.Error("Failed to add token usage", err)
+	}
+	if err := o.contextManager.AddToContext(ctx, conv, "comment_response", result.Output); err != nil {
+		logger.Error("Failed to add comment response to context", err)
+	}
 
 	logger.WithField("conversation_id", conv.ID).Info("PR comment handled")
 }

@@ -26,7 +26,7 @@ func NewClient(cfg *config.Config) *Client {
 
 // CreateIssueComment posts a comment on an issue
 func (c *Client) CreateIssueComment(owner, repo string, issueNumber int, body string) error {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%d/comments", owner, repo, issueNumber)
+	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + fmt.Sprint(issueNumber) + "/comments"
 
 	payload := map[string]string{
 		"body": body,
@@ -64,7 +64,7 @@ func (c *Client) CreateIssueComment(owner, repo string, issueNumber int, body st
 // CreateBranch creates a new branch from base branch
 func (c *Client) CreateBranch(owner, repo, branchName, baseBranch string) error {
 	// Get base branch SHA
-	baseURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/git/ref/heads/%s", owner, repo, baseBranch)
+	baseURL := "https://api.github.com/repos/" + owner + "/" + repo + "/git/ref/heads/" + baseBranch
 
 	req, err := http.NewRequest("GET", baseURL, nil)
 	if err != nil {
@@ -96,7 +96,7 @@ func (c *Client) CreateBranch(owner, repo, branchName, baseBranch string) error 
 	}
 
 	// Create new branch
-	createURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/git/refs", owner, repo)
+	createURL := "https://api.github.com/repos/" + owner + "/" + repo + "/git/refs"
 
 	payload := map[string]string{
 		"ref": "refs/heads/" + branchName,
@@ -134,7 +134,7 @@ func (c *Client) CreateBranch(owner, repo, branchName, baseBranch string) error 
 
 // AddIssueLabel adds a label to an issue
 func (c *Client) AddIssueLabel(owner, repo string, issueNumber int, label string) error {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%d/labels", owner, repo, issueNumber)
+	url := "https://api.github.com/repos/" + owner + "/" + repo + "/issues/" + fmt.Sprint(issueNumber) + "/labels"
 
 	payload := map[string][]string{
 		"labels": {label},
@@ -172,7 +172,7 @@ func (c *Client) AddIssueLabel(owner, repo string, issueNumber int, label string
 // ParseRepoOwner splits "owner/repo" into owner and repo
 func ParseRepoOwner(fullName string) (owner, repo string) {
 	parts := strings.Split(fullName, "/")
-	if len(parts) == 2 {
+	if len(parts) >= 2 {
 		return parts[0], parts[1]
 	}
 	return "", ""
