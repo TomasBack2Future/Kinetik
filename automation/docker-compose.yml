@@ -1,72 +1,54 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:14-alpine
-    container_name: kinetik-automation-db
+    container_name: kinetik-automation-postgres
     environment:
-      POSTGRES_DB: kinetik_automation
       POSTGRES_USER: kinetik_automation
-      POSTGRES_PASSWORD: kinetik_automation_dev
+      POSTGRES_PASSWORD: kinetik_automation_password
+      POSTGRES_DB: kinetik_automation
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
+      - ./migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kinetik_automation"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - kinetik-network
+      - automation-network
 
   webhook-server:
-    image: kinetik-automation:latest
+    image: ghcr.io/tomasback2future/kinetik-automation:8c5a497
     container_name: kinetik-automation-webhook
-    environment:
-      CONFIG_PATH: /app/config/config.yaml
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: kinetik_automation
-      DB_USER: kinetik_automation
-      DB_PASSWORD: kinetik_automation_dev
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
-      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     ports:
       - "8080:8080"
+    volumes:
+      - ./config/config.yaml:/app/config/config.yaml:ro
+      - ./logs:/app/logs
+      - /tmp/claude-sessions:/tmp/claude-sessions
+    environment:
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}
+      - CLAUDE_CODE_USE_BEDROCK=${CLAUDE_CODE_USE_BEDROCK:-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - DISABLE_PROMPT_CACHING=${DISABLE_PROMPT_CACHING:-0}
+      - DISABLE_AUTOUPDATER=${DISABLE_AUTOUPDATER:-1}
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - claude_sessions:/tmp/claude-sessions
-      - ~/.claude:/home/app/.claude:ro
-    restart: unless-stopped
     networks:
-      - kinetik-network
-
-  ngrok:
-    image: ngrok/ngrok:latest
-    container_name: kinetik-automation-ngrok
-    command:
-      - "http"
-      - "webhook-server:8080"
-      - "--log=stdout"
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-    ports:
-      - "4040:4040"
-    depends_on:
-      - webhook-server
-    networks:
-      - kinetik-network
+      - automation-network
     restart: unless-stopped
-
-networks:
-  kinetik-network:
-    driver: bridge
 
 volumes:
   postgres_data:
-  claude_sessions:
+    driver: local
+
+networks:
+  automation-network:
+    driver: bridge

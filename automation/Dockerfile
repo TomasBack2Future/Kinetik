@@ -23,13 +23,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o webhook-server ./
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk --no-cache add ca-certificates nodejs npm git github-cli
+RUN apk --no-cache add ca-certificates nodejs npm git github-cli wget
 
 # Install Claude CLI
 RUN npm install -g @anthropic-ai/claude-code
-
-# Create app user
-RUN addgroup -S app && adduser -S app -G app
 
 # Set working directory
 WORKDIR /app
@@ -40,13 +37,7 @@ COPY --from=builder /build/config ./config
 COPY --from=builder /build/migrations ./migrations
 
 # Create work directory for Claude sessions
-RUN mkdir -p /tmp/claude-sessions && chown -R app:app /tmp/claude-sessions
-
-# Change ownership
-RUN chown -R app:app /app
-
-# Switch to app user
-USER app
+RUN mkdir -p /tmp/claude-sessions
 
 # Expose port
 EXPOSE 8080
