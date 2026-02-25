@@ -20,14 +20,15 @@ services:
       - automation-network
 
   webhook-server:
-    image: ghcr.io/tomasback2future/kinetik-automation:ee64c65
+    image: ghcr.io/tomasback2future/kinetik-automation:04d6c49
     container_name: kinetik-automation-webhook
+    user: "1000:1000"  # Run as non-root user (matches appuser in Dockerfile)
     ports:
       - "8080:8080"
     volumes:
       - ./config/config.yaml:/app/config/config.yaml:ro
       - ./logs:/app/logs
-      - /tmp/claude-sessions:/tmp/claude-sessions
+      - claude-sessions:/tmp/claude-sessions
     environment:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
       - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}
@@ -47,6 +48,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  claude-sessions:
     driver: local
 
 networks:

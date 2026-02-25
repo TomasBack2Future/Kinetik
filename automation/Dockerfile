@@ -28,6 +28,10 @@ RUN apk --no-cache add ca-certificates nodejs npm git github-cli wget
 # Install Claude CLI
 RUN npm install -g @anthropic-ai/claude-code
 
+# Create non-root user for running the application
+RUN addgroup -g 1000 appuser && \
+    adduser -D -u 1000 -G appuser appuser
+
 # Set working directory
 WORKDIR /app
 
@@ -36,8 +40,12 @@ COPY --from=builder /build/webhook-server .
 COPY --from=builder /build/config ./config
 COPY --from=builder /build/migrations ./migrations
 
-# Create work directory for Claude sessions
-RUN mkdir -p /tmp/claude-sessions
+# Create work directory for Claude sessions and set ownership
+RUN mkdir -p /tmp/claude-sessions && \
+    chown -R appuser:appuser /app /tmp/claude-sessions
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8080
