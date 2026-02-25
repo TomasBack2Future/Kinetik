@@ -40,6 +40,10 @@ COPY --from=builder /build/webhook-server .
 COPY --from=builder /build/config ./config
 COPY --from=builder /build/migrations ./migrations
 
+# Copy repo management scripts
+COPY scripts/ ./scripts/
+RUN chmod +x ./scripts/*.sh
+
 # Create work directory for Claude sessions and set ownership
 RUN mkdir -p /tmp/claude-sessions && \
     chown -R appuser:appuser /app /tmp/claude-sessions
