@@ -140,6 +140,12 @@ func (h *WebhookHandler) handleIssueCommentEvent(body []byte, deliveryID string)
 
 	// Only process created comments
 	if event.Action == "created" {
+		// Ignore comments made by the bot itself to prevent feedback loops
+		if strings.EqualFold(event.Comment.User.Login, h.getBotUsername()) {
+			logger.WithField("issue_number", event.Issue.Number).Debug("Ignoring comment from bot itself")
+			return
+		}
+
 		// Check for approval keywords or bot mention
 		commentBody := strings.ToLower(event.Comment.Body)
 
